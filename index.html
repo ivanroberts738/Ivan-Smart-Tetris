@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ivan Smart Tetris</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PWA META -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f2027">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="icon.jpg">
+<link rel="manifest" href="manifest.json">
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family:times, Helvetica, sans-serif;
+}
+
+body {
+  background: #0f2027;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.game-wrapper {
+  background: #111;
+  padding: 16px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.game-area {
+  position: relative;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(20, 1fr);
+  width: 300px;
+  height: 600px;
+  background: #222;
+  border: 2px solid #444;
+  margin: 0 auto;
+}
+
+.cell {
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Tetromino colors */
+.I { background: #00f0f0; }
+.O { background: #f0f000; }
+.T { background: #a000f0; }
+.S { background: #00f000; }
+.Z { background: #f00000; }
+.J { background: #0000f0; }
+.L { background: #f0a000; }
+
+.score-box {
+  text-align: center;
+  margin: 12px 0;
+  padding: 10px;
+  background: #1c1c1c;
+  border-radius: 8px;
+  font-size: 1.2rem;
+}
+
+/* Navigation buttons */
+.nav {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.nav button {
+  padding: 14px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  background: #00c6ff;
+  color: #000;
+  cursor: pointer;
+}
+
+.nav button:active {
+  transform: scale(0.95);
+}
+
+.nav .empty {
+  background: transparent;
+  pointer-events: none;
+}
+
+/* Game over overlay */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="game-wrapper">
+  <h1>IVAN SMART TETRIS</h1>
+
+  <div class="game-area">
+    <div class="grid" id="grid"></div>
+    <div class="overlay" id="gameOver">GAME OVER</div>
+  </div>
+
+  <div class="score-box">
+    SCORE: <span id="score">0</span>
+  </div>
+
+  <div class="nav">
+    <div class="empty"></div>
+    <button id="rotate">⟳</button>
+    <div class="empty"></div>
+
+    <button id="left">◀</button>
+    <button id="down">▼</button>
+    <button id="right">▶</button>
+  </div>
+</div>
+
+<script>
+/* ===== PWA SERVICE WORKER ===== */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js");
+  });
+}
+
+/* ===== GAME LOGIC ===== */
+const WIDTH = 10;
+const HEIGHT = 20;
+const gridEl = document.getElementById("grid");
+const scoreEl = document.getElementById("score");
+const gameOverEl = document.getElementById("gameOver");
+
+let grid = [];
+for (let i = 0; i < WIDTH * HEIGHT; i++) {
+  const d = document.createElement("div");
+  d.className = "cell";
+  gridEl.appendChild(d);
+  grid.push(d);
+}
+
+const TETROMINOES = {
+  I: [[1,11,21,31],[10,11,12,13]],
+  O: [[0,1,10,11]],
+  T: [[1,10,11,12],[1,11,12,21],[10,11,12,21],[1,10,11,21]],
+  S: [[1,2,10,11],[1,11,12,22]],
+  Z: [[0,1,11,12],[2,11,12,21]],
+  J: [[0,10,11,12],[1,2,11,21],[0,1,2,12],[1,11,20,21]],
+  L: [[2,10,11,12],[1,11,21,22],[0,1,2,10],[0,1,11,21]]
+};
+
+const KEYS = Object.keys(TETROMINOES);
+
+let pos = 4;
+let rot = 0;
+let piece, shape;
+let score = 0;
+let timer;
+let over = false;
+
+function draw() {
+  shape.forEach(i => grid[pos + i]?.classList.add(piece));
+}
+
+function undraw() {
+  shape.forEach(i => grid[pos + i]?.classList.remove(piece));
+}
+
+function randomPiece() {
+  piece = KEYS[Math.floor(Math.random() * KEYS.length)];
+  rot = 0;
+  shape = TETROMINOES[piece][rot];
+  pos = 4;
+}
+
+function collision() {
+  return shape.some(i =>
+    pos + i >= WIDTH * HEIGHT ||
+    grid[pos + i].classList.contains("taken")
+  );
+}
+
+function freeze() {
+  shape.forEach(i => {
+    grid[pos + i].classList.add("taken");
+    grid[pos + i].classList.add(piece);
+  });
+}
+
+function moveDown() {
+  if (over) return;
+  undraw();
+  pos += WIDTH;
+  if (collision()) {
+    pos -= WIDTH;
+    freeze();
+    clearLines();
+    randomPiece();
+    if (collision()) endGame();
+  }
+  draw();
+}
+
+function moveLeft() {
+  undraw();
+  if (!shape.some(i => (pos + i) % WIDTH === 0)) {
+    pos--;
+    if (collision()) pos++;
+  }
+  draw();
+}
+
+function moveRight() {
+  undraw();
+  if (!shape.some(i => (pos + i) % WIDTH === WIDTH - 1)) {
+    pos++;
+    if (collision()) pos--;
+  }
+  draw();
+}
+
+function rotate() {
+  undraw();
+  rot = (rot + 1) % TETROMINOES[piece].length;
+  shape = TETROMINOES[piece][rot];
+  if (collision()) {
+    rot = (rot - 1 + TETROMINOES[piece].length) % TETROMINOES[piece].length;
+    shape = TETROMINOES[piece][rot];
+  }
+  draw();
+}
+
+function clearLines() {
+  for (let r = 0; r < HEIGHT; r++) {
+    let row = [];
+    for (let c = 0; c < WIDTH; c++) row.push(r * WIDTH + c);
+    if (row.every(i => grid[i].classList.contains("taken"))) {
+      row.forEach(i => grid[i].className = "cell");
+      const removed = grid.splice(r * WIDTH, WIDTH);
+      removed.forEach(c => gridEl.removeChild(c));
+      removed.forEach(c => {
+        grid.unshift(c);
+        gridEl.insertBefore(c, gridEl.firstChild);
+      });
+      score += 10;
+      scoreEl.textContent = score;
+    }
+  }
+}
+
+function endGame() {
+  clearInterval(timer);
+  over = true;
+  gameOverEl.style.display = "flex";
+}
+
+/* Keyboard controls */
+document.addEventListener("keydown", e => {
+  if (over) return;
+  if (e.key === "ArrowLeft") moveLeft();
+  if (e.key === "ArrowRight") moveRight();
+  if (e.key === "ArrowDown") moveDown();
+  if (e.key === "ArrowUp") rotate();
+});
+
+/* Button controls */
+document.getElementById("left").onclick = moveLeft;
+document.getElementById("right").onclick = moveRight;
+document.getElementById("down").onclick = moveDown;
+document.getElementById("rotate").onclick = rotate;
+
+/* Start game */
+randomPiece();
+draw();
+timer = setInterval(moveDown, 800);
+</script>
+
+</body>
+</html>

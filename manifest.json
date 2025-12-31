@@ -1,0 +1,16 @@
+{
+  "name": "Ivan Tetris",
+  "short_name": "Ivan Tetris",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#0f2027",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
