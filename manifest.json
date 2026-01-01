@@ -18,6 +18,5 @@
       "type": "image/jpeg"
     }
   ],
-  "description": "Ivan Smart Tetris is a mobile-first, installable Tetris game built with HTML, CSS, and JavaScript. \nPlay anywhere with keyboard or touch controls. Features include:\n\n- 10×20 Tetris grid with all 7 Tetromino shapes\n- Soft drop, rotation, and responsive controls\n- Score, level, and offline high-score tracking\n- Neon / dark theme toggle for a retro feel\n- Sound effects and background music\n- Fully installable Progressive Web App (PWA)\n- Works offline and on mobile or desktop\n\nPerfect for classic game lovers and PWA enthusiasts. Install and enjoy Tetris anytime!",
-  "id": "com.womulira.ivanSmartTetris"
+  "description": "Ivan Smart Tetris is a mobile-first, installable Tetris game built with HTML, CSS, and JavaScript. Play anywhere with keyboard or touch controls. Features include:\n- 10×20 Tetris grid with all 7 Tetromino shapes\n- Soft drop, rotation, and responsive controls\n- Score, level, and offline high-score tracking\n- Neon / dark theme toggle for a retro feel\n- Sound effects and background music\n- Fully installable Progressive Web App (PWA)\n- Works offline and on mobile or desktop\nPerfect for classic game lovers and PWA enthusiasts. Install and enjoy Tetris anytime!",
 }
